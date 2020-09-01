@@ -1,0 +1,60 @@
+version: "3.1"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: web.Dockerfile
+    depends_on:
+      - db
+    networks:
+      - proxy_net
+      - int_net
+  proxy:
+    build:
+      context: .
+      dockerfile: nginx.Dockerfile
+    depends_on:
+      - pma
+      - web
+    networks:
+      - proxy_net
+      - ext_net
+    ports:
+      - '80:80'
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_DATABASE: weshopweb
+      MYSQL_ROOT_PASSWORD: adminweshop
+      MYSQL_PASSWORD: admin417
+      MYSQL_USER: admin
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: "/etc/init.d/mysql status"
+      interval: 30s
+      retries: 60
+    networks:
+      - int_net
+  pma:
+    image: phpmyadmin/phpmyadmin:4.8.3
+    links: 
+      - db:mysql
+    healthcheck:
+      test: curl -f http://localhost// || exit 1
+      timeout: 5s
+      interval: 60s
+    networks:
+    - proxy_net
+    - int_net
+
+volumes:
+  mysql-data:
+networks:
+  proxy_net:
+    driver: bridge
+  int_net:
+    driver: bridge
+  ext_net:
+    driver: bridge
